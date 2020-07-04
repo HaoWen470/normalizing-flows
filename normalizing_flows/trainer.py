@@ -45,7 +45,7 @@ class NormalizingFlowsTrainer:
             
             summary_writer = tf.summary.create_file_writer(self.log_dir)
             beta_update = 1. / beta_schedule_duration
-            d = self.dataset.shuffle(shuffle_buffer_size).repeat().batch(batch_size).take(num_steps)
+            d = self.dataset.repeat().shuffle(shuffle_buffer_size).batch(batch_size).take(num_steps)
             for item in d:
                 # Get sample.
                 images = tf.round(tf.cast(item['image'], dtype=tf.float32) / 255.)
