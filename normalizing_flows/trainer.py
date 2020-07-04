@@ -21,8 +21,8 @@ class NormalizingFlowsTrainer:
     def run(self, initial_beta: float = 0.01, beta_schedule_duration: int = 10000,
             num_steps: int = 1000, batch_size: int = 32, summary_decimation: int = 100,
             num_flows: int = 1, sample_size: int = 1, seed: int = 42,
-            shuffle_buffer_size: int = int(1e4), 
-            device_name: Optional[str] = None):
+            shuffle_buffer_size: int = int(1e4), learning_rate: float = 1e-5,
+            momentum: float = 0.9, device_name: Optional[str] = None):
         os.makedirs(self.log_dir, exist_ok=True)
         with tf.device(device_name):
             tf.random.set_seed(seed)
@@ -30,7 +30,7 @@ class NormalizingFlowsTrainer:
             step = tf.Variable(0, dtype=tf.int64, trainable=False)
 
             model = NormalizingFlowImageModel(self.image_shape, num_flows=num_flows)
-            optimizer = tf.keras.optimizers.Adam()
+            optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate, momentum=momentum)
             ckpt = tf.train.Checkpoint(
                 beta=beta,
                 step=step,
