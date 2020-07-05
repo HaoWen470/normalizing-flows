@@ -83,7 +83,7 @@ class NormalizingFlowsTrainer:
                 trainable_variables = model.trainable_variables
                 gradients = tape.gradient(loss, trainable_variables)
                 for gix, grad in enumerate(gradients):
-                    tf.debugging.check_numerics(gradients, f'gradient {gix} has invalid numerics')
+                    tf.debugging.check_numerics(grad, f'gradient {gix} has invalid numerics')
                 optimizer.apply_gradients(zip(gradients, trainable_variables))
 
                 # Write summaries.
