@@ -27,12 +27,16 @@ class NormalizingFlowsTrainer:
         with tf.device(device_name):
             tf.random.set_seed(seed)
             beta = tf.Variable(initial_beta, dtype=tf.float32, trainable=False)
+            beta_schedule_duration = tf.Variable(beta_schedule_duration, dtype=tf.int64, trainable=False)
             step = tf.Variable(0, dtype=tf.int64, trainable=False)
+            num_flows = tf.Variable(num_flows, dtype=tf.int32, trainable=False)
 
-            model = NormalizingFlowImageModel(self.image_shape, num_flows=num_flows)
+            model = NormalizingFlowImageModel(self.image_shape, num_flows=int(num_flows))
             optimizer = tf.keras.optimizers.RMSprop(learning_rate=learning_rate, momentum=momentum)
             ckpt = tf.train.Checkpoint(
                 beta=beta,
+                beta_schedule_duration=beta_schedule_duration,
+                num_flows=num_flows,
                 step=step,
                 model=model,
                 optimizer=optimizer,
@@ -44,7 +48,7 @@ class NormalizingFlowsTrainer:
                 print('Loaded existing checkpoint', ckpt_path)
             
             summary_writer = tf.summary.create_file_writer(self.log_dir)
-            beta_update = 1. / beta_schedule_duration
+            beta_update = 1. / tf.cast(beta_schedule_duration, dtype=tf.float32)
             d = self.dataset.repeat().shuffle(shuffle_buffer_size).batch(batch_size).take(num_steps)
             for item in d:
                 # Get sample.
@@ -73,9 +77,13 @@ class NormalizingFlowsTrainer:
                     # Formulate the loss.
                     loss = -tf.reduce_mean(approx_posterior_ll + beta * generator_ll / tf.cast(sample_size, tf.float32))
 
+                tf.debugging.check_numerics(loss, 'loss has invalid numerics')
+
                 # Perform back propagation.
                 trainable_variables = model.trainable_variables
                 gradients = tape.gradient(loss, trainable_variables)
+                for gix, grad in enumerate(gradients):
+                    tf.debugging.check_numerics(gradients, f'gradient {gix} has invalid numerics')
                 optimizer.apply_gradients(zip(gradients, trainable_variables))
 
                 # Write summaries.
