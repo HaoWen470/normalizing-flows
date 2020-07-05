@@ -112,8 +112,8 @@ class IndependentBernoulliParameters(DistributionParameters):
         expand_at = parameters_rank - 1
         broadcast_p = expand_dims_n(self.p, expand_at, expand_by)
 
-        log_p = tf.math.log(broadcast_p + 1e-27)
-        log_1mp = tf.math.log(1. - broadcast_p + 1e-27)
+        log_p = tf.math.log(broadcast_p + 1e-8)
+        log_1mp = tf.math.log(1. - broadcast_p + 1e-8)
 
         independent_ll = inputs * log_p + (1. - inputs) * log_1mp
         return tf.reduce_sum(independent_ll, -1)
