@@ -75,7 +75,7 @@ class NormalizingFlowsTrainer:
                     generator_ll = generator_params.log_likelihood([recognition_samples, observation_samples])
 
                     # Formulate the loss.
-                    loss = -tf.reduce_mean(approx_posterior_ll + beta * generator_ll / tf.cast(sample_size, tf.float32))
+                    loss = -tf.reduce_mean(approx_posterior_ll + beta * generator_ll)
 
                 tf.debugging.check_numerics(loss, 'loss has invalid numerics')
 
@@ -87,8 +87,9 @@ class NormalizingFlowsTrainer:
                 optimizer.apply_gradients(zip(gradients, trainable_variables))
 
                 # Write summaries.
-                with summary_writer.as_default():
-                    tf.summary.scalar('loss', loss, step=step)
+                if step % summary_decimation == 0:
+                    with summary_writer.as_default():
+                        tf.summary.scalar('loss', loss, step=step)
 
                 # Print info.
                 print('Step =', step.numpy(), ', Loss =', loss.numpy())

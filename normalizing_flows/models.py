@@ -19,12 +19,12 @@ class NormalizingFlowImageModel(tf.Module):
             [
                 PlanarFlow(400) for _ in range(num_flows)
             ])
-        
+
         self.generative_model = DLGM([
             StandardGaussianLayer(400),
             IndependentBernoulliLayer(self.image_size)
         ])
-    
+
     def preprocess_images(self, image):
         image_shape = tf.shape(image)
         output_shape = tf.concat([image_shape[:-3], [self.image_size]], 0)

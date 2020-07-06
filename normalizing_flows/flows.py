@@ -8,7 +8,7 @@ class FlowParameters:
     def transform(self, inputs): raise NotImplementedError()
     def jacobian_determinant(self, inputs): raise NotImplementedError()
     def jacobian_log_determinant(self, inputs):
-        return tf.math.log(self.jacobian_determinant(inputs))
+        return tf.math.log(self.jacobian_determinant(inputs) + 1e-8)
 
 
 class Flow(tf.Module):
@@ -73,6 +73,6 @@ class PlanarFlow(Flow):
 
         w_dot_u = tf.reduce_sum(w * u, axis=-1, keepdims=True)
         w_squared_norm = tf.reduce_sum(tf.square(w), axis=-1, keepdims=True) + 1e-8
-        u_hat = u + (-1 + tf.nn.softplus(w_dot_u) - w_dot_u) * w / w_squared_norm
+        u_hat = u + (-1. + tf.nn.softplus(w_dot_u) - w_dot_u) * w / w_squared_norm
 
         return PlanarFlowParameters(w=w, u=u_hat, b=b)

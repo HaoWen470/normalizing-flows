@@ -15,7 +15,7 @@ class DistributionParameters:
     def log_likelihood(self, inputs) -> tf.Tensor: raise NotImplementedError()
     def sample_batch(self, batch_size: int = 1) -> tf.Tensor: raise NotImplementedError()
     def sample(self) -> tf.Tensor: 
-        return tf.squeeze(self.sample_batch(batch_size=self.parameters_batch_rank), 1)
+        return tf.squeeze(self.sample_batch(batch_size=1), self.parameters_batch_rank)
 
 
 class ParameterizableDistribution(tf.Module):
