@@ -6,15 +6,22 @@ from normalizing_flows.ops import expand_dims_n, dot_product
 
 class FlowParameters:
     @property
-    def parameters_batch_rank(self) -> tf.Tensor: raise NotImplementedError()
-    def transform(self, inputs): raise NotImplementedError()
-    def jacobian_determinant(self, inputs): raise NotImplementedError()
+    def parameters_batch_rank(self) -> tf.Tensor:
+        raise NotImplementedError()
+
+    def transform(self, inputs):
+        raise NotImplementedError()
+
+    def jacobian_determinant(self, inputs):
+        raise NotImplementedError()
+
     def jacobian_log_determinant(self, inputs):
         return tf.math.log(self.jacobian_determinant(inputs) + 1e-8)
 
 
 class Flow(tf.Module):
-    def parameterize(self, inputs) -> FlowParameters: raise NotImplementedError()
+    def parameterize(self, inputs) -> FlowParameters:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -72,7 +79,9 @@ class PlanarFlow(Flow):
         b = self.b_layer(hidden)
 
         w_dot_u = tf.reduce_sum(w * u, axis=-1, keepdims=True)
-        w_squared_norm = tf.reduce_sum(tf.square(w), axis=-1, keepdims=True) + 1e-8
-        u_hat = u + (-1. + tf.nn.softplus(w_dot_u) - w_dot_u) * w / w_squared_norm
+        w_squared_norm = tf.reduce_sum(tf.square(w), axis=-1,
+                                       keepdims=True) + 1e-8
+        u_hat = u + (-1. + tf.nn.softplus(w_dot_u) -
+                     w_dot_u) * w / w_squared_norm
 
         return PlanarFlowParameters(w=w, u=u_hat, b=b)

@@ -20,10 +20,13 @@ def merge_dims(x, axis, num_dims):
         slice_size = tf.minimum(rank - axis, num_dims)
         if slice_size == 0:
             return x
-        
+
         remaining_size = rank - slice_size - axis
         merged_size = tf.reduce_prod(tf.slice(shape, [axis], [slice_size]))
-        new_shape = tf.concat([shape[:axis], [merged_size], tf.slice(shape, [axis+slice_size], [remaining_size])], 0)
+        new_shape = tf.concat([
+            shape[:axis], [merged_size],
+            tf.slice(shape, [axis + slice_size], [remaining_size])
+        ], 0)
 
         return tf.reshape(x, new_shape)
     else:
@@ -31,4 +34,5 @@ def merge_dims(x, axis, num_dims):
 
 
 def dot_product(x, y):
-    return tf.squeeze(tf.linalg.matmul(tf.expand_dims(x, -2), tf.expand_dims(y, -1)), -1)
+    return tf.squeeze(
+        tf.linalg.matmul(tf.expand_dims(x, -2), tf.expand_dims(y, -1)), -1)

@@ -10,10 +10,17 @@ import imageio
 import fire
 
 
-def main(*, log_dir: str, dataset_name: str, num_flows: int, output_path: str, 
-        max_frames: int = 100, fps: float = 10.,
-        batch_size: int = 32, device_name: Optional[str] = None):
-    assert output_path.lower().endswith('.gif'), 'must specify a GIF output path'
+def main(*,
+         log_dir: str,
+         dataset_name: str,
+         num_flows: int,
+         output_path: str,
+         max_frames: int = 100,
+         fps: float = 10.,
+         batch_size: int = 32,
+         device_name: Optional[str] = None):
+    assert output_path.lower().endswith(
+        '.gif'), 'must specify a GIF output path'
     with tf.device(device_name):
         dataset = tfds.load(dataset_name, split='test', shuffle_files=True)
         image_shape = dataset.element_spec['image'].shape
@@ -27,29 +34,30 @@ def main(*, log_dir: str, dataset_name: str, num_flows: int, output_path: str,
         for item in d:
             images = tf.round(tf.cast(item['image'], dtype=tf.float32) / 255.)
             preprocessed = model.preprocess_images(images)
-            
+
             # Parameterize the approximate posterior (recognition network).
-            recognition_params = model.recognition_model.parameterize(preprocessed)
+            recognition_params = model.recognition_model.parameterize(
+                preprocessed)
 
             # Sample from q(z | x).
             recognition_sample = recognition_params.sample()
 
             # Parameterize p(x | z).
-            generative_params = model.generative_model.parameterize([
-                [recognition_sample.shape[0]],
-                recognition_sample])
+            generative_params = model.generative_model.parameterize(
+                [[recognition_sample.shape[0]], recognition_sample])
 
             # Sample from p(x | z).
             reconstruction_params = generative_params.layer_parameters[-1]
             reconstructions = reconstruction_params.sample()
-            reconstruction_images = model.postprocess_generative_samples(reconstructions)
+            reconstruction_images = model.postprocess_generative_samples(
+                reconstructions)
 
             # Create demo image (left is original, right is reconstruction).
             demo_images = tf.concat([images, reconstruction_images], axis=2)
 
-            # Append samples. 
+            # Append samples.
             samples.append(demo_images)
-            
+
         if samples:
             video = tf.concat(samples, 0)
             imageio.mimwrite(output_path, video, loop=0, fps=fps)

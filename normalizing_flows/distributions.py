@@ -11,16 +11,23 @@ from normalizing_flows.ops import expand_dims_n
 
 class DistributionParameters:
     @property
-    def parameters_batch_rank(self) -> tf.Tensor: raise NotImplementedError()
-    def log_likelihood(self, inputs) -> tf.Tensor: raise NotImplementedError()
-    def sample_batch(self, batch_size: int = 1) -> tf.Tensor: raise NotImplementedError()
-    def sample(self) -> tf.Tensor: 
+    def parameters_batch_rank(self) -> tf.Tensor:
+        raise NotImplementedError()
+
+    def log_likelihood(self, inputs) -> tf.Tensor:
+        raise NotImplementedError()
+
+    def sample_batch(self, batch_size: int = 1) -> tf.Tensor:
+        raise NotImplementedError()
+
+    def sample(self) -> tf.Tensor:
         batch = self.sample_batch(batch_size=1)
         return tf.squeeze(batch, axis=int(self.parameters_batch_rank))
 
 
 class ParameterizableDistribution(tf.Module):
-    def parameterize(self, inputs) -> DistributionParameters: raise NotImplementedError()
+    def parameterize(self, inputs) -> DistributionParameters:
+        raise NotImplementedError()
 
 
 @dataclass
@@ -39,14 +46,18 @@ class DiagonalGaussianParameters(DistributionParameters):
         expand_by = tf.rank(inputs) - parameters_rank
         expand_at = parameters_rank - 1
         broadcast_mean = expand_dims_n(self.mean, expand_at, expand_by)
-        broadcast_diagonal_covariance = expand_dims_n(self.diagonal_covariance, expand_at, expand_by)
+        broadcast_diagonal_covariance = expand_dims_n(self.diagonal_covariance,
+                                                      expand_at, expand_by)
 
         k = tf.cast(shape[-1], dtype=tf.float32)
         shifted_inputs = inputs - broadcast_mean
 
         constant_term = -0.5 * k * tf.math.log(2. * pi)
-        determinant_term = -0.5 * tf.reduce_sum(tf.math.log(broadcast_diagonal_covariance), -1)
-        exp_term = -0.5 * tf.reduce_sum(tf.square(shifted_inputs) * (1. / broadcast_diagonal_covariance), -1)
+        determinant_term = -0.5 * tf.reduce_sum(
+            tf.math.log(broadcast_diagonal_covariance), -1)
+        exp_term = -0.5 * tf.reduce_sum(
+            tf.square(shifted_inputs) *
+            (1. / broadcast_diagonal_covariance), -1)
 
         return constant_term + determinant_term + exp_term
 
@@ -55,12 +66,21 @@ class DiagonalGaussianParameters(DistributionParameters):
 
         parameters_batch_rank = self.parameters_batch_rank
         multiples = tf.ones_like(shape, dtype=tf.int32)
-        multiples = tf.concat([multiples[:parameters_batch_rank], [batch_size], multiples[parameters_batch_rank:]], 0)
+        multiples = tf.concat([
+            multiples[:parameters_batch_rank], [batch_size],
+            multiples[parameters_batch_rank:]
+        ], 0)
 
-        mean = tf.tile(tf.expand_dims(self.mean, parameters_batch_rank), multiples)
-        stddev = tf.tile(tf.expand_dims(tf.sqrt(self.diagonal_covariance), parameters_batch_rank), multiples)
-        
-        output_shape = tf.concat([shape[:parameters_batch_rank], [batch_size], shape[parameters_batch_rank:]], 0)
+        mean = tf.tile(tf.expand_dims(self.mean, parameters_batch_rank),
+                       multiples)
+        stddev = tf.tile(
+            tf.expand_dims(tf.sqrt(self.diagonal_covariance),
+                           parameters_batch_rank), multiples)
+
+        output_shape = tf.concat([
+            shape[:parameters_batch_rank], [batch_size],
+            shape[parameters_batch_rank:]
+        ], 0)
 
         return tf.random.normal(output_shape) * stddev + mean
 
@@ -69,15 +89,18 @@ class DiagonalGaussianLayer(ParameterizableDistribution):
     def __init__(self, num_dims: int):
         super().__init__()
         self.num_dims = num_dims
-        self.hidden_layer = tf.keras.layers.Dense(num_dims, activation=tf.nn.tanh)
+        self.hidden_layer = tf.keras.layers.Dense(num_dims,
+                                                  activation=tf.nn.tanh)
         self.mean_layer = tf.keras.layers.Dense(num_dims)
-        self.diagonal_covariance_layer = tf.keras.layers.Dense(num_dims, activation=tf.exp)
+        self.diagonal_covariance_layer = tf.keras.layers.Dense(
+            num_dims, activation=tf.exp)
 
     def parameterize(self, inputs) -> DiagonalGaussianParameters:
         hidden = self.hidden_layer(inputs)
         mean = self.mean_layer(hidden)
         diagonal_covariance = self.diagonal_covariance_layer(hidden)
-        return DiagonalGaussianParameters(mean=mean, diagonal_covariance=diagonal_covariance)
+        return DiagonalGaussianParameters(
+            mean=mean, diagonal_covariance=diagonal_covariance)
 
 
 class StandardGaussianLayer(ParameterizableDistribution):
@@ -85,13 +108,15 @@ class StandardGaussianLayer(ParameterizableDistribution):
         super().__init__()
         self.num_dims = num_dims
 
-    def parameterize(self, parameter_batch_shape) -> DiagonalGaussianParameters:
+    def parameterize(self,
+                     parameter_batch_shape) -> DiagonalGaussianParameters:
         outputs_shape = tf.concat([parameter_batch_shape, [self.num_dims]], 0)
 
         mean = tf.zeros(outputs_shape, dtype=tf.float32)
         diagonal_covariance = tf.ones(outputs_shape, dtype=tf.float32)
 
-        return DiagonalGaussianParameters(mean=mean, diagonal_covariance=diagonal_covariance)
+        return DiagonalGaussianParameters(
+            mean=mean, diagonal_covariance=diagonal_covariance)
 
 
 @dataclass
@@ -121,19 +146,24 @@ class IndependentBernoulliParameters(DistributionParameters):
 
         parameters_batch_rank = self.parameters_batch_rank
         multiples = tf.ones_like(shape, dtype=tf.int32)
-        multiples = tf.concat([multiples[:parameters_batch_rank], [batch_size], multiples[parameters_batch_rank:]], 0)
+        multiples = tf.concat([
+            multiples[:parameters_batch_rank], [batch_size],
+            multiples[parameters_batch_rank:]
+        ], 0)
 
-        output_shape = tf.concat([shape[:parameters_batch_rank], [batch_size], shape[parameters_batch_rank:]], 0)
+        output_shape = tf.concat([
+            shape[:parameters_batch_rank], [batch_size],
+            shape[parameters_batch_rank:]
+        ], 0)
 
-        p_tiled = tf.tile(tf.expand_dims(self.p, parameters_batch_rank), multiples)
-        
+        p_tiled = tf.tile(tf.expand_dims(self.p, parameters_batch_rank),
+                          multiples)
+
         random_samples = tf.random.uniform(output_shape, minval=0., maxval=1.)
-        bernoulli_samples = tf.where(
-            random_samples < p_tiled,
-            tf.ones(output_shape, dtype=tf.float32),
-            tf.zeros(output_shape, dtype=tf.float32)
-        )
-        
+        bernoulli_samples = tf.where(random_samples < p_tiled,
+                                     tf.ones(output_shape, dtype=tf.float32),
+                                     tf.zeros(output_shape, dtype=tf.float32))
+
         return bernoulli_samples
 
 
@@ -141,8 +171,10 @@ class IndependentBernoulliLayer(ParameterizableDistribution):
     def __init__(self, num_dims: int):
         super().__init__()
         self.num_dims = num_dims
-        self.hidden_layer = tf.keras.layers.Dense(num_dims, activation=tf.nn.tanh)
-        self.output_layer = tf.keras.layers.Dense(num_dims, activation=tf.nn.sigmoid)
+        self.hidden_layer = tf.keras.layers.Dense(num_dims,
+                                                  activation=tf.nn.tanh)
+        self.output_layer = tf.keras.layers.Dense(num_dims,
+                                                  activation=tf.nn.sigmoid)
 
     def parameterize(self, inputs) -> DiagonalGaussianParameters:
         hidden = self.hidden_layer(inputs)
@@ -159,11 +191,16 @@ class DLGMParameters(DistributionParameters):
         return self.layer_parameters[0].parameters_batch_rank
 
     def log_likelihood(self, inputs: Sequence[tf.Tensor]) -> tf.Tensor:
-        layer_ll = [x.log_likelihood(y) for x, y in zip(self.layer_parameters, inputs)]
+        layer_ll = [
+            x.log_likelihood(y) for x, y in zip(self.layer_parameters, inputs)
+        ]
         return tf.reduce_sum(tf.stack(layer_ll, 0), 0)
-    
+
     def sample_batch(self, batch_size: int = 1) -> List[tf.Tensor]:
-        return [x.sample_batch(batch_size=batch_size) for x in self.layer_parameters]
+        return [
+            x.sample_batch(batch_size=batch_size)
+            for x in self.layer_parameters
+        ]
 
     def sample(self) -> List[tf.Tensor]:
         return [x.sample() for x in self.layer_parameters]
@@ -175,7 +212,9 @@ class DLGM(ParameterizableDistribution):
         self.layers = list(layers)
 
     def parameterize(self, inputs: Sequence[tf.Tensor]):
-        return DLGMParameters(layer_parameters=[x.parameterize(y) for x, y in zip(self.layers, inputs)])
+        return DLGMParameters(layer_parameters=[
+            x.parameterize(y) for x, y in zip(self.layers, inputs)
+        ])
 
 
 @dataclass
@@ -189,7 +228,9 @@ class NormalizingFlowParameters(DistributionParameters):
 
     def log_likelihood(self, inputs: tf.Tensor):
         base_log_likelihood = self.base_parameters.log_likelihood(inputs)
-        flow_ll = [x.jacobian_log_determinant(inputs) for x in self.flow_parameters]
+        flow_ll = [
+            x.jacobian_log_determinant(inputs) for x in self.flow_parameters
+        ]
         joint_flow_ll = tf.reduce_sum(tf.stack(flow_ll, 0), 0)
         return base_log_likelihood - joint_flow_ll
 
@@ -201,12 +242,13 @@ class NormalizingFlowParameters(DistributionParameters):
 
 
 class NormalizingFlow(ParameterizableDistribution):
-    def __init__(self, base_distribution: ParameterizableDistribution, flows: Sequence[Flow]):
+    def __init__(self, base_distribution: ParameterizableDistribution,
+                 flows: Sequence[Flow]):
         assert len(flows) > 0, 'must use at least 1 flow'
         self.base_distribution = base_distribution
         self.flows = list(flows)
 
     def parameterize(self, inputs):
-        return NormalizingFlowParameters(base_parameters=self.base_distribution.parameterize(inputs), flow_parameters=[
-            x.parameterize(inputs) for x in self.flows
-        ])
+        return NormalizingFlowParameters(
+            base_parameters=self.base_distribution.parameterize(inputs),
+            flow_parameters=[x.parameterize(inputs) for x in self.flows])

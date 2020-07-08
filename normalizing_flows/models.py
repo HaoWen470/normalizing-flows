@@ -2,9 +2,10 @@ import tensorflow as tf
 
 from typing import List
 
-from normalizing_flows.distributions import (
-    DLGM, NormalizingFlow, DiagonalGaussianLayer,
-    StandardGaussianLayer, IndependentBernoulliLayer)
+from normalizing_flows.distributions import (DLGM, NormalizingFlow,
+                                             DiagonalGaussianLayer,
+                                             StandardGaussianLayer,
+                                             IndependentBernoulliLayer)
 
 from normalizing_flows.flows import PlanarFlow
 
@@ -16,9 +17,7 @@ class NormalizingFlowImageModel(tf.Module):
         self.image_size = tf.reduce_prod(self.image_shape)
         self.recognition_model = NormalizingFlow(
             DiagonalGaussianLayer(400),
-            [
-                PlanarFlow(400) for _ in range(num_flows)
-            ])
+            [PlanarFlow(400) for _ in range(num_flows)])
 
         self.generative_model = DLGM([
             StandardGaussianLayer(400),
