@@ -5,6 +5,8 @@ from normalizing_flows.ops import expand_dims_n, dot_product
 
 
 class FlowParameters:
+    @property
+    def parameters_batch_rank(self) -> tf.Tensor: raise NotImplementedError()
     def transform(self, inputs): raise NotImplementedError()
     def jacobian_determinant(self, inputs): raise NotImplementedError()
     def jacobian_log_determinant(self, inputs):
@@ -17,14 +19,15 @@ class Flow(tf.Module):
 
 @dataclass
 class PlanarFlowParameters(FlowParameters):
-    # [parameter_batch_size, dims]
     w: tf.Tensor
     u: tf.Tensor
     b: tf.Tensor
 
+    @property
+    def parameters_batch_rank(self):
+        return tf.rank(self.w) - 1
+
     def transform(self, inputs):
-        # input: [parameter_batch_size, ..., dims]
-        # output: [parameter_batch-size, ..., dims]
         parameters_rank = tf.rank(self.w)
         expand_by = tf.rank(inputs) - parameters_rank
         expand_at = parameters_rank - 1
@@ -38,9 +41,6 @@ class PlanarFlowParameters(FlowParameters):
         return inputs + y
 
     def jacobian_determinant(self, inputs):
-        # input: [parameter_batch_size, ..., dims]
-        # output: [parameter_batch-size, ...]
-        # Derivative of tanh(x) = 1 - tanh^2(x)
         parameters_rank = tf.rank(self.w)
         expand_by = tf.rank(inputs) - parameters_rank
         expand_at = parameters_rank - 1

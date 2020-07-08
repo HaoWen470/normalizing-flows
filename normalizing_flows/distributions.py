@@ -15,7 +15,8 @@ class DistributionParameters:
     def log_likelihood(self, inputs) -> tf.Tensor: raise NotImplementedError()
     def sample_batch(self, batch_size: int = 1) -> tf.Tensor: raise NotImplementedError()
     def sample(self) -> tf.Tensor: 
-        return tf.squeeze(self.sample_batch(batch_size=1), self.parameters_batch_rank)
+        batch = self.sample_batch(batch_size=1)
+        return tf.squeeze(batch, axis=int(self.parameters_batch_rank))
 
 
 class ParameterizableDistribution(tf.Module):
@@ -24,7 +25,6 @@ class ParameterizableDistribution(tf.Module):
 
 @dataclass
 class DiagonalGaussianParameters(DistributionParameters):
-    # [parameter_batch_size..., dims]
     mean: tf.Tensor
     diagonal_covariance: tf.Tensor
 
@@ -33,8 +33,6 @@ class DiagonalGaussianParameters(DistributionParameters):
         return tf.rank(self.mean) - 1
 
     def log_likelihood(self, inputs):
-        # input: [parameter_batch_size..., ..., dims]
-        # output: [parameter_batch-size..., ...]
         shape = tf.shape(self.mean)
 
         parameters_rank = tf.rank(self.mean)
@@ -53,7 +51,6 @@ class DiagonalGaussianParameters(DistributionParameters):
         return constant_term + determinant_term + exp_term
 
     def sample_batch(self, batch_size: int = 1) -> tf.Tensor:
-        # output: [parameter_batch_size, sample_batch_size, dims]
         shape = tf.shape(self.mean)
 
         parameters_batch_rank = self.parameters_batch_rank
@@ -99,12 +96,13 @@ class StandardGaussianLayer(ParameterizableDistribution):
 
 @dataclass
 class IndependentBernoulliParameters(DistributionParameters):
-    # [parameter_batch_size, dims]
     p: tf.Tensor
 
+    @property
+    def parameters_batch_rank(self):
+        return tf.rank(self.p) - 1
+
     def log_likelihood(self, inputs):
-        # input: [parameter_batch_size, ..., dims]
-        # output: [parameter_batch-size, ...]
         shape = tf.shape(self.p)
 
         parameters_rank = tf.rank(self.p)
@@ -119,7 +117,6 @@ class IndependentBernoulliParameters(DistributionParameters):
         return tf.reduce_sum(independent_ll, -1)
 
     def sample_batch(self, batch_size: int = 1) -> tf.Tensor:
-        # output: [parameter_batch_size, sample_batch_size, dims]
         shape = tf.shape(self.p)
 
         parameters_batch_rank = self.parameters_batch_rank
@@ -157,6 +154,10 @@ class IndependentBernoulliLayer(ParameterizableDistribution):
 class DLGMParameters(DistributionParameters):
     layer_parameters: Sequence[DistributionParameters]
 
+    @property
+    def parameters_batch_rank(self):
+        return self.layer_parameters[0].parameters_batch_rank
+
     def log_likelihood(self, inputs: Sequence[tf.Tensor]) -> tf.Tensor:
         layer_ll = [x.log_likelihood(y) for x, y in zip(self.layer_parameters, inputs)]
         return tf.reduce_sum(tf.stack(layer_ll, 0), 0)
@@ -181,6 +182,10 @@ class DLGM(ParameterizableDistribution):
 class NormalizingFlowParameters(DistributionParameters):
     base_parameters: DistributionParameters
     flow_parameters: Sequence[FlowParameters]
+
+    @property
+    def parameters_batch_rank(self):
+        return self.base_parameters.parameters_batch_rank
 
     def log_likelihood(self, inputs: tf.Tensor):
         base_log_likelihood = self.base_parameters.log_likelihood(inputs)
