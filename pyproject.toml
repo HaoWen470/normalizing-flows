@@ -5,11 +5,10 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.8"
 tqdm = "^4.46.1"
 tensorflow = "^2.2.0"
 fire = "^0.3.1"
-tensorflow-probability = "^0.10.0"
 tensorflow-datasets = "^3.1.0"
 imageio = "^2.9.0"
 
