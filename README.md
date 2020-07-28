@@ -146,10 +146,10 @@ which are formulated as:
 where u and w are vectors, and b is a scalar parameter.
 
 It was shown for two instances of this transformation, named planar flows and radial flows,
-under certain conditions, this function is invertible. Additionally, the jacobians
+under certain conditions, that this function is invertible. Additionally, the jacobians
 were derived and used in the formulation of the ELBO (negative free energy) loss function.
 
-Once the loss function was performed, optimization was carried out using backpropagation.
+Once the loss function was computed, optimization was carried out using backpropagation.
 
 See the paper for more detail.
 
