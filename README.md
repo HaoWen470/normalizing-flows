@@ -17,7 +17,7 @@ This is an unaffiliated implementation of the following paper:
 Given some probabilistic graphical model, typically one would like to perform inference
 to be able to query the model under certain conditions. For example, starting with the joint distribution
 `P(X, Y, Z)`, one could try to infer `P(X|Y=y)`. Often times, this type of query can be intractable
-to perfrom exactly and so one must resort to approximate methods. One class of approximate inference
+to perform exactly and so one must resort to approximate methods. One class of approximate inference
 methods is variational inference, which poses this problem as an optimization over the
 space of probability distributions. In particular, one is trying to find a valid probability
 distribution that is closest to the true distribution (i.e. `P(X|Y=y)`) given some measure of similarity
@@ -45,13 +45,13 @@ computing `P(X)` would require performing inference which as mentioned is often 
 
 Note that the log-likelihood of the data distribution can instead be approximated by a lower bound as follows:
 
-![Equation 1](images/equation1.png)
+<img alt="Equation 1" src="images/equations-0.png" width="400px" />
 
-![Equation 2](images/equation2.png)
+<img alt="Equation 2" src="images/equations-1.png" width="500px" />
 
-![Equation 3](images/equation3.png)
+<img alt="Equation 3" src="images/equations-2.png" width="500px" />
 
-![Equation 4](images/equation4.png)
+<img alt="Equation 4" src="images/equations-3.png" width="550px" />
 
 <!--
 
@@ -76,9 +76,9 @@ and `P(Z = z)` while a second term maximizes the log-likelihood of `P(X = x | Z 
 under the Q distribution. The first term is known as the regularization term, where the prior
 on Z is considered the regularizer. The equivalence is shown below:
 
-![Equation 5](images/equation5.png)
+<img alt="Equation 5" src="images/equations-4.png" width="550px" />
 
-![Equation 6](images/equation6.png)
+<img alt="Equation 6" src="images/equations-5.png" width="450px" />
 
 <!--
 
@@ -111,13 +111,13 @@ which given enough parameters and data can approximate any distribution.
 The key idea that was leveraged is that of a normalizing flow. Starting with
 an initial density over some random variable, one can apply a chain of invertible
 transformations on the random variable to yield another random variable. The
-principle of normalizing flows shows that the probailistic density over the
+principle of normalizing flows shows that the probabilistic density over the
 transformed random variable can be computed solely from the initial density
 and the jacobians of the transformation functions that were applied. Specifically,
 given an initial density `q(z)`, and applying the invertible transformation
 `z' = f(z)`, then the density over the new random variable is given by:
 
-![Equation 7](images/equation7.png)
+<img alt="Equation 7" src="images/equations-6.png" width="250px" />
 
 <!--
 
@@ -135,7 +135,7 @@ for example, by a stochastic differential equation.
 In the paper, however, the main focus was on invertible linear-time transformations
 which are formulated as:
 
-![Equation 8](images/equation8.png)
+<img alt="Equation 8" src="images/equations-7.png" width="200px" />
 
 <!--
 
