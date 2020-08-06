@@ -9,7 +9,7 @@ This is an unaffiliated implementation of the following paper:
 <p align="center">
 <i>Test Data vs. Reconstruction</i>
 <br />
-<img src="images/demo.gif" height="150px" align="center" />
+<img src="images/demo.gif" width="300px" align="center" />
 </p>
 
 ### Motivation
@@ -155,15 +155,12 @@ See the paper for more detail.
 
 ### Implementation
 
-This implementation focused on applying planar flows to the MNIST dataset. It is structured
+This implementation focused on applying planar flows to the binarized Fashion MNIST dataset. It is structured
 in a way that can be extended relatively easily to other normalizing flows and generally
 follows the details laid out in the original paper. One key difference is that the deep neural
 networks use the tanh activation rather than the maxout activation. 
 
-A flow size of 10 was
-used to generate the following plot. Although training proceeded for 250k iterations,
-an earlier checkpoint was used as the loss plateaued and became more noisy as can be seen
-towards the 170k mark.
+Training a model with a flow size of 10 for 200k iterations produced the following plot:
 
 <p align="center">
     <img src="images/loss.png" align="center" />
