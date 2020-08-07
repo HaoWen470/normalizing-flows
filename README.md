@@ -45,13 +45,13 @@ computing `P(X)` would require performing inference which as mentioned is often 
 
 Note that the log-likelihood of the data distribution can instead be approximated by a lower bound as follows:
 
-<img alt="Equation 1" src="images/equations-0.png" width="400px" />
+<p align="center"><img alt="Equation 1" src="images/equations-0.png" width="400px" /></p>
 
-<img alt="Equation 2" src="images/equations-1.png" width="500px" />
+<p align="center"><img alt="Equation 2" src="images/equations-1.png" width="500px" /></p>
 
-<img alt="Equation 3" src="images/equations-2.png" width="500px" />
+<p align="center"><img alt="Equation 3" src="images/equations-2.png" width="500px" /></p>
 
-<img alt="Equation 4" src="images/equations-3.png" width="550px" />
+<p align="center"><img alt="Equation 4" src="images/equations-3.png" width="550px" /></p>
 
 <!--
 
@@ -76,9 +76,9 @@ and `P(Z = z)` while a second term maximizes the log-likelihood of `P(X = x | Z 
 under the Q distribution. The first term is known as the regularization term, where the prior
 on Z is considered the regularizer. The equivalence is shown below:
 
-<img alt="Equation 5" src="images/equations-4.png" width="550px" />
+<p align="center"><img alt="Equation 5" src="images/equations-4.png" width="550px" /></p>
 
-<img alt="Equation 6" src="images/equations-5.png" width="450px" />
+<p align="center"><img alt="Equation 6" src="images/equations-5.png" width="450px" /></p>
 
 <!--
 
@@ -117,7 +117,7 @@ and the jacobians of the transformation functions that were applied. Specificall
 given an initial density `q(z)`, and applying the invertible transformation
 `z' = f(z)`, then the density over the new random variable is given by:
 
-<img alt="Equation 7" src="images/equations-6.png" width="250px" />
+<p align="center"><img alt="Equation 7" src="images/equations-6.png" width="250px" /></p>
 
 <!--
 
@@ -129,13 +129,13 @@ This rule can be applied over a chain of invertible transformations in exactly t
 resulting in an exact specification of the distribution over the final random variable.
 
 Additionally, applying this rule indefinitely results in a class of
-normalizing flows known as infinitesimal flows which are can be characterized,
+normalizing flows known as infinitesimal flows which can be characterized,
 for example, by a stochastic differential equation.
 
 In the paper, however, the main focus was on invertible linear-time transformations
 which are formulated as:
 
-<img alt="Equation 8" src="images/equations-7.png" width="200px" />
+<p align="center"><img alt="Equation 8" src="images/equations-7.png" width="200px" /></p>
 
 <!--
 
@@ -146,7 +146,7 @@ which are formulated as:
 where u and w are vectors, and b is a scalar parameter.
 
 It was shown for two instances of this transformation, named planar flows and radial flows,
-under certain conditions, that this function is invertible. Additionally, the jacobians
+that under certain conditions this function is invertible. Additionally, the jacobians
 were derived and used in the formulation of the ELBO (negative free energy) loss function.
 
 Once the loss function was computed, optimization was carried out using backpropagation.
@@ -160,8 +160,8 @@ in a way that can be extended relatively easily to other normalizing flows and g
 follows the details laid out in the original paper. One key difference is that the deep neural
 networks use the tanh activation rather than the maxout activation. 
 
-Training a model with a flow size of 10 for 200k iterations produced the following plot:
+Training a model with a flow size of 10 for 500k iterations produced the following plot:
 
 <p align="center">
-    <img src="images/loss.png" align="center" />
+    <p align="center"><img src="images/loss.png" align="center" />
 </p>
