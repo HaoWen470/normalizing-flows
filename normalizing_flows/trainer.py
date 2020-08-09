@@ -16,9 +16,47 @@ class NormalizingFlowsTrainer:
         self.log_dir = log_dir
         self.dataset_name = dataset_name
         self.dataset = tfds.load(self.dataset_name,
-                                 split='train',
+                                 split='train[:70%]',
                                  shuffle_files=True)
+        self.validation_dataset = tfds.load(self.dataset_name,
+                                            split='train[70%:]',
+                                            shuffle_files=True)
         self.image_shape = self.dataset.element_spec['image'].shape
+
+    def _extract_preprocessed_image(
+            self, item, model: NormalizingFlowImageModel) -> tf.Tensor:
+        # Get sample.
+        images = tf.round(tf.cast(item['image'], dtype=tf.float32) / 255.)
+        preprocessed = model.preprocess_images(images)
+        return preprocessed
+
+    def _compute_loss(self, preprocessed: tf.Tensor,
+                      model: NormalizingFlowImageModel, batch_size: int,
+                      sample_size: int, beta: float):
+        # Parameterize recognition model.
+        recognition_params = model.recognition_model.parameterize(preprocessed)
+
+        # Differentiably sample from posterior.
+        recognition_samples = recognition_params.sample_batch(sample_size)
+
+        # Parameterize the generative model.
+        generator_params = model.generative_model.parameterize(
+            [[batch_size, sample_size], recognition_samples])
+
+        # Compute log-likelihood of approximate posterior.
+        approx_posterior_ll = recognition_params.log_likelihood(
+            recognition_samples)
+
+        # Compute log-likelihood of generator using latent
+        # variables and data samples.
+        observation_samples = tf.expand_dims(preprocessed, 1)
+        generator_ll = generator_params.log_likelihood(
+            [recognition_samples, observation_samples])
+
+        # Formulate the loss.
+        loss = -tf.reduce_mean(approx_posterior_ll + beta * generator_ll)
+
+        return loss
 
     def run(self,
             initial_beta: float = 0.01,
@@ -26,7 +64,7 @@ class NormalizingFlowsTrainer:
             num_steps: int = 1000,
             batch_size: int = 100,
             summary_decimation: int = 100,
-            num_flows: int = 1,
+            num_flows: int = 10,
             sample_size: int = 1,
             seed: int = 42,
             shuffle_buffer_size: int = int(1e4),
@@ -66,38 +104,16 @@ class NormalizingFlowsTrainer:
                                        dtype=tf.float32)
             d = self.dataset.repeat().shuffle(shuffle_buffer_size).batch(
                 batch_size).take(num_steps)
+
+            val_ds = self.validation_dataset.repeat().shuffle(
+                shuffle_buffer_size).batch(batch_size)
+            val_ds_iter = iter(val_ds)
             for item in d:
-                # Get sample.
-                images = tf.round(
-                    tf.cast(item['image'], dtype=tf.float32) / 255.)
-                preprocessed = model.preprocess_images(images)
+                preprocessed = self._extract_preprocessed_image(item, model)
 
                 with tf.GradientTape() as tape:
-                    # Parameterize recognition model.
-                    recognition_params = model.recognition_model.parameterize(
-                        preprocessed)
-
-                    # Differentiably sample from posterior.
-                    recognition_samples = recognition_params.sample_batch(
-                        sample_size)
-
-                    # Parameterize the generative model.
-                    generator_params = model.generative_model.parameterize(
-                        [[batch_size, sample_size], recognition_samples])
-
-                    # Compute log-likelihood of approximate posterior.
-                    approx_posterior_ll = recognition_params.log_likelihood(
-                        recognition_samples)
-
-                    # Compute log-likelihood of generator using latent 
-                    # variables and data samples.
-                    observation_samples = tf.expand_dims(preprocessed, 1)
-                    generator_ll = generator_params.log_likelihood(
-                        [recognition_samples, observation_samples])
-
-                    # Formulate the loss.
-                    loss = -tf.reduce_mean(approx_posterior_ll +
-                                           beta * generator_ll)
+                    loss = self._compute_loss(preprocessed, model, batch_size,
+                                              sample_size, beta)
 
                 tf.debugging.check_numerics(loss, 'loss has invalid numerics')
 
@@ -109,18 +125,23 @@ class NormalizingFlowsTrainer:
                         grad, f'gradient {gix} has invalid numerics')
                 optimizer.apply_gradients(zip(gradients, trainable_variables))
 
-                # Write summaries.
-                if step % summary_decimation == 0:
-                    with summary_writer.as_default():
-                        tf.summary.scalar('loss', loss, step=step)
-
-                # Print info.
-                print('Step =', step.numpy(), ', Loss =', loss.numpy())
+                val_loss = self._compute_loss(
+                    self._extract_preprocessed_image(next(val_ds_iter), model),
+                    model, batch_size, sample_size, beta)
 
                 step.assign_add(1)
                 beta.assign(tf.minimum(1., beta + beta_update))
+
+                # Print info.
+                print('Step =', step.numpy(), ', Train Loss =', loss.numpy(),
+                      ', Val Loss =', val_loss.numpy())
+
+                # Write summaries.
                 if step % summary_decimation == 0:
                     manager.save()
+                    with summary_writer.as_default():
+                        tf.summary.scalar('loss/train', loss, step=step)
+                        tf.summary.scalar('loss/val', val_loss, step=step)
 
             manager.save()
 
